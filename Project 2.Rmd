@@ -1,0 +1,137 @@
+---
+title: "STAT 6021 Project 2 - Group 11"
+author: "Alysa Pugmire, Angelo Orciuoli, Khalil Goddard, and Maryam Ali"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+```{r}
+# import libraries needed for visualizations and analysis
+library(tidyverse)
+library(MASS)
+library(car)
+```
+
+# Section 3: Data Cleaning
+
+This section includes steps to identify and fix data entry errors and transform problematic variables in the King County housing data-set.
+
+
+## Step 1: Load and Inspect the Data
+
+```{r}
+Data <- read.csv("kc_house_data.csv", header = TRUE)
+str(Data)
+summary(Data)
+head(Data)
+```
+
+## Step 2: Identify Potential Data Entry Errors
+
+In this section, we identify observations that have clearly incorrect or suspicious values. These include homes with 0 or extremely high bedroom or bathroom counts, 0 square footage, and any unusual pricing or year values.
+
+### 2.1 Bedrooms Check for zero or very high number
+
+We are checking for homes with 0 bedrooms or more than 15 bedrooms. A house with 0 bedrooms is unrealistic, and more than 15 is extremely rare and likely a data entry mistake (based on the data summary)
+
+```{r}
+unique(Data$bedrooms)
+summary(Data$bedrooms)
+table(Data$bedrooms)
+Data <- Data[Data$bedrooms > 0 & Data$bedrooms <= 15, ]
+
+```
+### 2.2 Bathrooms Check for zero or very high number
+
+We are checking for homes with 0 bathrooms or more than 8 bathrooms. While luxury homes can have many bathrooms, 8+ is rare.
+
+```{r}
+unique(Data$bathrooms)
+summary(Data$bathrooms)
+table(Data$bathrooms)
+Data <- Data[Data$bathrooms > 0, ]
+```
+### 2.3 Living Area and Lot Size Check for Zero
+
+We check for homes with sqft_living == 0 or sqft_lot == 0. A house cannot have 0 square feet of living space or land area.
+
+
+```{r}
+Data[Data$sqft_living == 0 | Data$sqft_lot == 0, ]
+
+```
+No homes in the dataset have 0 for sqft_living or sqft_lot
+
+### 2.4 Price Check for Zero or negative
+
+The price variable should always be a positive number. A home with a price of 0 or less is invalid for this dataset, and such rows should be removed.
+
+```{r}
+summary(Data$price)
+Data[Data$price <= 0, ]
+
+```
+There are no homes with a price ≤ 0. There were no such entries, so no cleaning was necessary for this variable.
+
+
+### 2.5 Year Built & Year Renovated Check for future years
+We check for homes with yr_built or yr_renovated in the future (after 2015)
+
+```{r}
+unique(Data$yr_built)
+unique(Data$yr_renovated)
+Data[Data$yr_built > 2015 | Data$yr_renovated > 2015, ]
+
+```
+Dataset has no homes built or renovated after 2015.
+
+
+## Step 3: Fixing Problematic Variables
+
+### 3.1 Transform date Column
+
+The date column is a character string and not useful for modeling. We'll extract: year and month sold.
+
+```{r}
+
+Data$date <- as.character(Data$date)
+
+Data$year_sold <- as.numeric(substr(Data$date, 1, 4))
+Data$month_sold <- as.numeric(substr(Data$date, 5, 6))
+
+table(Data$year_sold)
+table(Data$month_sold)
+```
+### 3.2 Transform zipcode to a Factor
+
+Zipcodes are stored as a numeric variables, but they aren’t meant to be used like regular numbers. They're more like location labels, not values. It needs to be converted to a factor so R treats it as category.
+
+
+```{r}
+
+Data$zipcode <- as.factor(Data$zipcode)
+
+str(Data$zipcode)
+length(unique(Data$zipcode))
+```
+
+There were 70 unique zipcodes in the dataset.
+
+
+### 3.3 Converting Renovation Year to a Binary Renovation (Yes/No)
+
+```{r}
+
+Data$renovated <- ifelse(Data$yr_renovated > 0, 1, 0)
+table(Data$renovated)
+```
+20,682 homes were not renovated, 914 homes were renovated; which makes sense; most homes don't undergo renovations before being sold 
+
+```{r}
+write.csv(Data, "kc_house_data_cleaned.csv", row.names = FALSE)
+
+```
+
