@@ -1,0 +1,121 @@
+---
+title: "Project_2_Section_3"
+author: "Maryam"
+date: "2025-04-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Section 3: Data Cleaning
+
+This section includes steps to identify and fix data entry errors and transform problematic variables in the King County housing data-set.
+
+```{r}
+library(tidyverse)
+library(scales)
+library(gridExtra)
+```
+
+```{r}
+#load and inspect data
+Data <- read.csv("kc_house_data.csv", header = TRUE)
+
+```
+
+### 3.1 Transform date Column
+
+The date column is a character string and not useful for modeling. We'll extract: year and month sold.
+
+```{r}
+
+Data$date <- as.character(Data$date)
+
+Data$year_sold <- as.numeric(substr(Data$date, 1, 4))
+Data$month_sold <- as.numeric(substr(Data$date, 5, 6))
+
+table(Data$year_sold)
+table(Data$month_sold)
+```
+### 3.2 Transform zipcode to a Factor
+
+Zipcodes are stored as a numeric variables, but they aren’t meant to be used like regular numbers. They're more like location labels, not values. It needs to be converted to a factor so R treats it as category.
+
+
+```{r}
+
+Data$zipcode <- as.factor(Data$zipcode)
+
+str(Data$zipcode)
+length(unique(Data$zipcode))
+```
+
+There were 70 unique zipcodes in the dataset.
+
+
+### 3.3 Converting Renovation Year to a Binary Renovation (Yes/No)
+
+```{r}
+
+Data$renovated <- ifelse(Data$yr_renovated > 0, 1, 0)
+table(Data$renovated)
+```
+
+# SECTION 4 - VISUALIZATIONS
+
+```{r}
+beds <- ggplot(Data, aes(x=bedrooms, y=price))+
+  scale_y_continuous(breaks = breaks_extended(6),labels = label_dollar())+
+  stat_summary(geom="bar")
+
+baths <- ggplot(Data, aes(x=bathrooms, y=price))+
+  scale_y_continuous(breaks = breaks_extended(6),labels = label_dollar())+
+  stat_summary(geom="bar")
+
+grid.arrange(beds, baths, ncol=2,nrow=1)
+```
+
+```{r}
+ggplot(Data, aes(x=sqft_living, y=price))+
+  scale_y_continuous(breaks = breaks_extended(6),labels = label_dollar())+
+  geom_point()
+```
+
+```{r}
+ggplot(Data, aes(x=sqft_lot, y=price))+
+  scale_y_continuous(breaks = breaks_extended(6),labels = label_dollar())+
+  geom_point()
+```
+
+
+```{r}
+ggplot(Data, aes(x=grade, y=price))+
+  scale_y_continuous(breaks = breaks_extended(6),labels = label_dollar())+
+  geom_point()
+```
+```{r}
+grade <- ggplot(Data, aes(x=grade, y=price))+
+  scale_y_continuous(breaks = breaks_extended(6),labels = label_dollar())+
+  stat_summary(geom="bar")
+
+condition <- ggplot(Data, aes(x=condition, y=price))+
+  scale_y_continuous(breaks = breaks_extended(6),labels = label_dollar())+
+  stat_summary(geom="bar")
+
+grid.arrange(grade,condition,ncol=2,nrow=2)
+```
+
+```{r}
+ggplot(Data, aes(x=month_sold))+
+  geom_density()
+```
+
+
+
+```{r}
+write.csv(Data, "kc_house_data_cleaned.csv", row.names = FALSE)
+
+```
+
