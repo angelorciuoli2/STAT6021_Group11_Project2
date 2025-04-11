@@ -209,6 +209,19 @@ The dataset includes latitude and longitude coordinates for each home, but those
 
 To explore how location might relate to home quality and perceived safety, I used the new variable distance_to_downtown. I then compared this distance to the home’s condition rating, which ranges from 1 (poor) to 5 (excellent). The boxplot shows an interesting pattern: homes with lower condition ratings (1 to 3) tend to be closer to downtown, while those in better condition (ratings 4 and 5) are more commonly located farther away. This suggests that higher-quality homes may be more concentrated in suburban or residential areas, while those in the urban core might be older or less well maintained. Although there’s some overlap between the groups, the trend offers a useful perspective on how distance from the city center could be connected to neighborhood quality or overall housing conditions.
 
+
+### 3.5 Multicollinearity in Square Footage Variables
+
+```{r}
+# Check for multicollinearity among square footage variables
+sqft_vars <- Data[, c("sqft_living", "sqft_above", "sqft_basement", "sqft_living15")]
+cor_matrix <- round(cor(sqft_vars), 2)
+cor_matrix
+```
+The correlation matrix showed that sqft_living is highly correlated with sqft_above (r = 0.88) and also strongly correlated with sqft_living15 (r = 0.76). The relationship between sqft_living and sqft_basement was more moderate (r = 0.43), and there was very little correlation between sqft_above and sqft_basement (r = –0.05).
+
+This makes sense, because sqft_living is generally the total of above- and below-ground finished space. To avoid multicollinearity in our regression models, we chose to retain only sqft_living and exclude sqft_above and sqft_basement. We will re-evaluate sqft_living15 later depending on its impact on the model.
+
 ```{r}
 write.csv(Data, "kc_house_data_cleaned.csv", row.names = FALSE)
 
