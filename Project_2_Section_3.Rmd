@@ -217,6 +217,9 @@ To explore how location might relate to home quality and perceived safety, I use
 sqft_vars <- Data[, c("sqft_living", "sqft_above", "sqft_basement", "sqft_living15")]
 cor_matrix <- round(cor(sqft_vars), 2)
 cor_matrix
+
+Data$sqft_above <- NULL
+Data$sqft_basement <- NULL
 ```
 The correlation matrix showed that sqft_living is highly correlated with sqft_above (r = 0.88) and also strongly correlated with sqft_living15 (r = 0.76). The relationship between sqft_living and sqft_basement was more moderate (r = 0.43), and there was very little correlation between sqft_above and sqft_basement (r = –0.05).
 
