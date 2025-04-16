@@ -116,7 +116,18 @@ Data[Data$id == 3374500520, "bathrooms"] <- 3.5
 
 As part of the data cleaning process, we found 17 properties with unusual or clearly incorrect values for bedrooms and bathrooms. Some had 0 bedrooms or 0 bathrooms, and one even had 33 bedrooms, which is obviously unrealistic. Instead of deleting these rows right away, we looked each one up manually using the King County Parcel Viewer to verify what the correct values should be. For most of them, we was able to confirm the actual number of rooms and made the necessary corrections based on that. For instance, one home listed with 0 bedrooms and 0 bathrooms was corrected to 4 bedrooms and 4 bathrooms after verification, and the home listed with 33 bedrooms was updated to 3, which made more sense given its size. One property turned out to be a studio-style layout with 0 bedrooms and 1.5 bathrooms, so we kept that one as-is. In three cases, we couldn’t find any record of the property, and since the information couldn’t be confirmed and looked suspicious, we decided to remove those rows. Overall, this process helped us clean the dataset in a careful and meaningful way, using outside sources to make informed decisions instead of relying only on assumptions or automatic removals.
 
-### 2.3 Living Area and Lot Size Check for Zero
+
+###2.3 Check for Duplicate Property IDs
+
+```{r}
+
+dup_count <- sum(duplicated(Data$id))
+dup_count
+```
+177 homes with duplicate IDs
+
+
+### 2.4 Living Area and Lot Size Check for Zero
 
 We check for homes with sqft_living == 0 or sqft_lot == 0. A house cannot have 0 square feet of living space or land area.
 
@@ -129,7 +140,7 @@ No homes in the dataset have 0 for sqft_living or sqft_lot
 
 
 
-### 2.4 Price Check for Zero or negative
+### 2.5 Price Check for Zero or negative
 
 The price variable should always be a positive number. A home with a price of 0 or less is invalid for this dataset, and such rows should be removed.
 
@@ -141,7 +152,7 @@ Data[Data$price <= 0, ]
 There are no homes with a price ≤ 0. There were no such entries, so no cleaning was necessary for this variable.
 
 
-### 2.5 Year Built & Year Renovated Check for future years
+### 2.6 Year Built & Year Renovated Check for future years
 We check for homes with yr_built or yr_renovated in the future (after 2015)
 
 ```{r}
@@ -168,32 +179,52 @@ table(Data$year_sold)
 table(Data$month_sold)
 ```
 
-### 3.2 Transform zipcode to a Factor
+### 3.2 Transform Zip Code into Geographic Region
 
 zipcode has over 70 unique values. That’s too many for regression modeling, and need 70 dummy variables, which will clutters model and Increases risk of overfitting
 
 ```{r}
 
-Data$zip_group <- substr(as.character(Data$zipcode), 1, 3)
-table(Data$zip_group)
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+
+city_zips <- c(98101, 98102, 98104, 98105, 98109, 98112, 98115, 98116, 98118, 98119, 98121, 98122, 98125, 98126, 98133, 98134,98136, 98144, 98154, 98164, 98174, 98195)
+
+suburb_zips <- c(98004, 98005, 98006, 98007, 98008, 98027, 98029, 98033,98034, 98040, 98052, 98053, 98056, 98057, 98059, 98072,98074, 98075, 98092, 98070, 98028, 98019)
+
+rural_zips <- setdiff(unique(Data$zipcode), union(city_zips, suburb_zips))
+
+Data$region <- case_when(
+  Data$zipcode %in% city_zips ~ "City",
+  Data$zipcode %in% suburb_zips ~ "Suburb",
+  Data$zipcode %in% rural_zips ~ "Rural"
+)
+
+Data$region <- factor(Data$region, levels = c("City", "Suburb", "Rural"))
+
+table(Data$region)
 
 ```
 
-We fixed it by creating a new variable zip_group based on the first 3 digits of the zip code. we've reduced 70+ zip codes into just 2 regional clusters, which; Zip Group "980" has 12,636 homes, and zip Group  "981" has 8,977 homes.
+4471 are city home, 7266 are suburb, and 9873 are rural.
 
-
-### 3.3 Converting Renovation Year to a Binary Renovation (Yes/No)
+### 3.3 Grouping Homes by Renovation Recency
 
 ```{r}
-Data$renovated <- ifelse(Data$yr_renovated > 0, 1, 0)
-table(Data$renovated)
-Data$renovated <- factor(Data$renovated)
+Data$renovation_group <- case_when(
+  Data$yr_renovated == 0 ~ "Never Renovated",
+  Data$yr_renovated >= 2005 ~ "Recently Renovated",
+  TRUE ~ "Renovated Long Ago"
+)
+Data$renovation_group <- factor(Data$renovation_group)
+table(Data$renovation_group)
 ```
 
-20,699 homes were not renovated, 914 homes were renovated; which makes sense; most homes dont undergo renovations before being sold 
+20,699 homes were not renovated, 320 homes were recently renovated; and 594 are renovated long ago
 
-### 3.4 Transform Waterfront into a categorical variable with levels
-
+### 3.4 TTransform Latitude & Longitude into Distance to Downtown and compare distance with condition
 ```{r}
 Data$waterfront <-factor(Data$waterfront)
 ```
@@ -205,6 +236,16 @@ Data$waterfront <-factor(Data$waterfront)
 
 Data$distance_to_downtown <- sqrt(
   (Data$lat - 47.6062)^2 + (Data$long + 122.3321)^2
+)
+
+summary(Data$distance_to_downtown)
+
+boxplot(distance_to_downtown ~ condition, 
+        data = Data,
+        main = "Distance from Downtown vs. Home Condition",
+        xlab = "Condition (1 = Poor, 5 = Excellent)",
+        ylab = "Distance to Downtown",
+        col = "lightblue")
 )
 
 summary(Data$distance_to_downtown)
@@ -331,6 +372,140 @@ boxplot(distance_to_downtown ~ condition,
 ```
 
 To explore how location might relate to home quality and perceived safety, I used the new variable distance_to_downtown. I then compared this distance to the home’s condition rating, which ranges from 1 (poor) to 5 (excellent). The boxplot shows an interesting pattern: homes with lower condition ratings (1 to 3) tend to be closer to downtown, while those in better condition (ratings 4 and 5) are more commonly located farther away. This suggests that higher-quality homes may be more concentrated in suburban or residential areas, while those in the urban core might be older or less well maintained. Although there’s some overlap between the groups, the trend offers a useful perspective on how distance from the city center could be connected to neighborhood quality or overall housing conditions.
+
+
+## Section 6
+###6.1. Univariate – Distribution of Grade and Condition
+
+```{r}
+
+library(gridExtra)
+library(scales)
+library(ggplot2)
+
+grid.arrange(
+  ggplot(train, aes(x = factor(grade))) +
+    geom_bar(fill = "steelblue") +
+    labs(title = "Distribution of Home Grades",
+         x = "Grade (1 = Low Quality, 13 = High Quality)",
+         y = "Number of Homes") +
+    theme_minimal(),
+
+  ggplot(train, aes(x = factor(condition))) +
+    geom_bar(fill = "darkorange") +
+    labs(title = "Distribution of Home Conditions",
+         x = "Condition (1 = Poor, 5 = Excellent)",
+         y = "Number of Homes") +
+    theme_minimal(),
+
+  ncol = 2
+)
+
+ggsave("grade_condition_distribution.png", width = 12, height = 5, dpi = 300)
+
+
+```
+
+###6.2  Univariate - Class Distribution of Good Quality
+
+```{r}
+ggplot(train, aes(x = factor(good_quality))) +
+  geom_bar(fill = "lightsteelblue") +
+  labs(
+    title = "Distribution of Good Quality Homes",
+    x = "Good Quality (1 = Yes, 0 = No)",
+    y = "Number of Homes"
+  ) +
+  theme_minimal()
+
+```
+### Step 6.3 : Bivariate - Distribution of Sale Price by Home Quality Group
+
+```{r}
+
+library(ggplot2)
+library(scales)
+
+ggplot(train, aes(x = factor(good_quality), y = price)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(
+    title = "Price Distribution by Home Quality",
+    x = "Good Quality (1 = Yes, 0 = No)",
+    y = "Sale Price"
+  ) +
+  scale_y_continuous(breaks = breaks_extended(6), labels = label_dollar()) +
+  theme_minimal()
+
+
+
+```
+Step 6.4: Bivariate - Region vs. Good Quality
+
+```{r}
+
+
+ggplot(train, aes(x = region, fill = factor(good_quality))) +
+  geom_bar(position = "fill") +
+  scale_fill_manual(values = c("lightgray", "steelblue"),
+                    labels = c("Not Good Quality", "Good Quality")) +
+  labs(
+    title = "Proportion of Good Quality Homes by Region",
+    x = "Region",
+    y = "Proportion of Homes",
+    fill = "Home Quality"
+  ) +
+  theme_minimal()
+
+
+
+```
+## Step 6.5: Bivariate - Region vs. Good Quality
+
+```{r}
+
+ggplot(train, aes(x = factor(good_quality), y = distance_to_downtown)) +
+  geom_boxplot(fill = "darkseagreen") +
+  labs(
+    title = "Distance to Downtown by Home Quality",
+    x = "Good Quality (1 = Yes, 0 = No)",
+    y = "Distance to Downtown (miles)"
+  ) +
+  theme_minimal()
+```
+
+
+### Step 6.6: Multivariate - Price vs. sqfr_living, by Good Quality
+```{r}
+
+ggplot(train, aes(x = sqft_living, y = price, color = factor(good_quality))) +
+  geom_point(alpha = 0.4) +
+  labs(
+    title = "Price vs. Living Area Colored by Good Quality",
+    x = "Sqft Living",
+    y = "Price",
+    color = "Good Quality"
+  ) +
+  scale_y_continuous(labels = label_dollar()) +
+  theme_minimal()
+
+```
+### Step 6.7: Multivariate - Price vs. Distance to Downtown, by Good Quality
+
+```{r}
+ggplot(train, aes(x = distance_to_downtown, y = price, color = factor(good_quality))) +
+  geom_point(alpha = 0.5) +
+  labs(
+    title = "Price vs. Distance to Downtown Colored by Home Quality",
+    x = "Distance to Downtown",
+    y = "Price",
+    color = "Good Quality"
+  ) +
+  scale_color_manual(values = c("gray70", "steelblue")) +
+  scale_y_continuous(breaks = breaks_extended(6), labels = label_dollar()) +
+  theme_minimal()
+
+```
+
 
 ```{r}
 write.csv(Data, "kc_house_data_cleaned.csv", row.names = FALSE)
