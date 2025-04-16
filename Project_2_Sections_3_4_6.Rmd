@@ -439,7 +439,7 @@ ggplot(train, aes(x = factor(good_quality), y = price)) +
 
 
 ```
-Step 6.4: Bivariate - Region vs. Good Quality
+### Step 6.4: Bivariate - Region vs. Good Quality
 
 ```{r}
 
@@ -459,7 +459,7 @@ ggplot(train, aes(x = region, fill = factor(good_quality))) +
 
 
 ```
-## Step 6.5: Bivariate - Region vs. Good Quality
+###Step 6.5: Bivariate - Region vs. Good Quality
 
 ```{r}
 
