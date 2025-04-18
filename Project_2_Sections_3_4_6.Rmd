@@ -224,7 +224,7 @@ table(Data$renovation_group)
 
 20,699 homes were not renovated, 320 homes were recently renovated; and 594 are renovated long ago
 
-### 3.4 TTransform Latitude & Longitude into Distance to Downtown and compare distance with condition
+### 3.4 Transform Latitude & Longitude into Distance to Downtown and compare distance with condition
 ```{r}
 Data$waterfront <-factor(Data$waterfront)
 ```
@@ -246,7 +246,7 @@ boxplot(distance_to_downtown ~ condition,
         xlab = "Condition (1 = Poor, 5 = Excellent)",
         ylab = "Distance to Downtown",
         col = "lightblue")
-)
+
 
 summary(Data$distance_to_downtown)
 ```
@@ -281,18 +281,32 @@ test<-Data[-sample.data, ]
 ```
 
 ```{r}
+#bar chart and box plot that show how # of bedrooms are related to price
 ggplot(train, aes(x=bedrooms, y=price))+
   scale_y_continuous(breaks = breaks_extended(6),labels = label_dollar())+
   theme(plot.title = element_text(hjust=.5))+
   labs(x="Bedrooms", y="Averge Price", title = "Average Price by Number of Bedrooms")+
   stat_summary(geom="bar", fill="red")
 
+ggplot(train, aes(x=as.factor(bedrooms), y=price))+
+  geom_boxplot(fill="lightblue")+
+  scale_y_continuous(breaks = breaks_extended(6),labels = label_dollar())+
+  theme(plot.title = element_text(hjust=.5))+
+  labs(x="Bedrooms", y="Price", title = "Price Distribtion by Number of Bedrooms")
+  
+
+```
+
+```{r}
+#bar chart and box plot that show how # of bedrooms are related to price
 ggplot(train, aes(x=bathrooms, y=price))+
   theme(plot.title = element_text(hjust=.5))+
   labs(x="Bathrooms", y="Averge Price", title = "Average Price by Number of Bathrooms")+
   scale_y_continuous(breaks = breaks_extended(6),labels = label_dollar())+
   stat_summary(geom="bar", fill="red")
+
 ```
+
 
 ```{r}
 ggplot(train, aes(x=sqft_living, y=price))+
@@ -326,10 +340,10 @@ grid.arrange(grade,condition,ncol=2,nrow=2)
 ```
 
 ```{r}
-ggplot(train, aes(x=zip_group, y=price))+
+ggplot(train, aes(x=region, y=log(price)))+
   scale_y_continuous(breaks = breaks_extended(6),labels = label_dollar())+
   theme(plot.title = element_text(hjust=.5))+
-  labs(x="Zip Code Group", y="Price", title = "Price by Zip Code Group")+
+  labs(x="Zip Code Group", y="log(Price)", title = "log(Price) by Zip Code Group")+
   geom_boxplot(fill="lavender")
 ```
 
@@ -351,14 +365,36 @@ grid.arrange(dist,built,ncol=2,nrow=2)
 ```
 
 ```{r}
-ggplot(train, aes(x=distance_to_downtown, y=price, color=condition))+
-  scale_y_continuous(breaks = breaks_extended(6),labels = label_dollar())+
+ggplot(train, aes(x=distance_to_downtown, y=log(price), color=region))+
+  scale_y_continuous(breaks = breaks_extended(6),labels =    label_dollar())+
+  labs(x="Distance to Downtown",
+       y= "Log(price)",
+       color = "Region",
+       title = "Log(price) Against Distance to Downtown by Region")+
   geom_point()
 ```
 
 ```{r}
-ggplot(train,aes(x=condition,y=price))+
+ggplot(train,aes(x=condition,y=log(price), color=yr_built))+
+  scale_y_continuous(breaks = breaks_extended(6),labels =    label_dollar())+
+  scale_color_gradientn(colors=c("steelblue", "skyblue", "lightgreen", "gold", "tomato"))+
+  theme(plot.title = element_text(hjust=.05))+
+  labs(x="Condition",
+       y= "log(Price)",
+       color = "Year Built",
+       title = "log(Price) Against Condition by Year Built")+
   geom_point()
+```
+
+```{r}
+ggplot(train,aes(x=distance_to_downtown,y=log(price), color=renovation_group))+
+  scale_y_continuous(breaks = breaks_extended(6),labels =    label_dollar())+
+  theme(plot.title = element_text(hjust=.05))+
+  labs(x="Distance to Downtown",
+       y= "log(Price)",
+       color = "Renovated",
+       title = "log(Price) Against Distance to Downtown by Renovated")+
+  geom_point(alpha=.5)
 ```
 
 
@@ -373,6 +409,14 @@ boxplot(distance_to_downtown ~ condition,
 
 To explore how location might relate to home quality and perceived safety, I used the new variable distance_to_downtown. I then compared this distance to the home’s condition rating, which ranges from 1 (poor) to 5 (excellent). The boxplot shows an interesting pattern: homes with lower condition ratings (1 to 3) tend to be closer to downtown, while those in better condition (ratings 4 and 5) are more commonly located farther away. This suggests that higher-quality homes may be more concentrated in suburban or residential areas, while those in the urban core might be older or less well maintained. Although there’s some overlap between the groups, the trend offers a useful perspective on how distance from the city center could be connected to neighborhood quality or overall housing conditions.
 
+```{r}
+ggplot(train, aes(x=condition, fill=region))+
+  theme(plot.title = element_text(hjust=.5))+
+  labs(x="Condition",
+       fill = "Region",
+       title = "Region by Condition")+
+  geom_bar()
+```
 
 ## Section 6
 ###6.1. Univariate – Distribution of Grade and Condition
